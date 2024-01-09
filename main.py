@@ -82,7 +82,10 @@ def render():
             render_process = subprocess.run(render_command, check=True, capture_output=True, text=True)
             console_output_text = render_process.stdout
         except subprocess.CalledProcessError as e:
+            messagebox.showerror("RenderError", "An error occurred during rendering. Please check the console output for more information.")
             console_output_text = f"Error during rendering: {e.stderr}"
+        except FileNotFoundError as e:
+            messagebox.showerror("ExeError", "The selected blender executable does not exist. Please select a valid blender executable.")
 
     # Update the console output widget
     console_output.delete("1.0", tk.END)
