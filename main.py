@@ -16,7 +16,7 @@ class Scene:
         self.frame_start = frame_start
         self.frame_end = frame_end
 
-def save_settings():
+""" def save_settings():
     global blender_executable_path
 
     config = configparser.ConfigParser()
@@ -34,7 +34,7 @@ def save_settings():
         blender_executable = config['Blender']['ExecutablePath']
         blender_entry.delete(0, tk.END)
         blender_entry.insert(0, blender_executable)
-
+ """
 
 render_settings = {}
 
@@ -47,7 +47,9 @@ def render():
     config = configparser.ConfigParser()
     config.read('settings.ini')
     blender_executable = blender_executable_path
-
+    if blender_executable == "":
+        messagebox.showerror("ExeError", "No blender executable has been selected. Please select a blender executable.")
+        return
 
     status_label.config(text="Rendering in progress...")
     window.update()
@@ -93,6 +95,7 @@ def render():
         shutdown_command = "shutdown /s /t 0"
         subprocess.run(shutdown_command, shell=True)
 
+
 config = configparser.ConfigParser()
 config.read('settings.ini')
 
@@ -101,11 +104,9 @@ config.read('settings.ini')
 if 'Blender' in config and 'ExecutablePath' in config['Blender']:
     blender_executable_path = config['Blender']['ExecutablePath']
 
-def browse_blender_executable():
-    file_path = filedialog.askopenfilename(filetypes=[("Blender Executable", "blender.exe")])
-    blender_entry.delete(0, tk.END)
-    blender_entry.insert(0, file_path)
-
+def open_settings():
+    subprocess.run(['python', 'settings.py'])
+    
 def browse_scene_file(scene_entry):
     file_path = filedialog.askopenfilename(filetypes=[("Blender Files", "*.blend")])
     scene_entry.delete(0, tk.END)
@@ -154,26 +155,18 @@ def clear_scenes():
 # Create the GUI window
 window = tk.Tk()
 window.title("Blender Render")
-
-# Blender executable path input
-blender_label = tk.Label(window, text="Blender Executable Path:")
-blender_label.pack()
-
-blender_entry = tk.Entry(window, width=50)
-blender_entry.pack()
-
-browse_blender_button = tk.Button(window, text="Browse", command=browse_blender_executable)
-browse_blender_button.pack()
-
-# Load the Blender executable path from settings.ini if it exists
-config = configparser.ConfigParser()
-config.read('settings.ini')
-if 'Blender' in config and 'ExecutablePath' in config['Blender']:
-    blender_entry.insert(0, config['Blender']['ExecutablePath'])
+#blender_entry = tk.Entry(window, width=50)
+#blender_entry.pack()
+# Add menu bar
+menubar = tk.Menu(window)
+file = tk.Menu(menubar, tearoff=0)
+file.add_command(label="Settings", command=open_settings)
+menubar.add_cascade(label="File", menu=file)
+window.config(menu=menubar)
 
 # Save settings button
-save_settings_button = tk.Button(window, text="Save Settings", command=save_settings)
-save_settings_button.pack()
+# save_settings_button = tk.Button(window, text="Save Settings", command=save_settings)
+# save_settings_button.pack()
 
 # Scene file selection
 scene_label = tk.Label(window, text="Scene File:")
