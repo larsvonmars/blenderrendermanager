@@ -5,6 +5,7 @@ import configparser
 import os
 from tkinter import messagebox
 import configparser
+import settings
 
 
 blender_executable_path = ""
@@ -129,7 +130,6 @@ def render():
         shutdown_command = "shutdown /s /t 0"
         subprocess.run(shutdown_command, shell=True)
 
-
 config = configparser.ConfigParser()
 config.read('settings.ini')
 
@@ -139,7 +139,7 @@ if 'Blender' in config and 'ExecutablePath' in config['Blender']:
     blender_executable_path = config['Blender']['ExecutablePath']
 
 def open_settings():
-    subprocess.run(['python', 'settings.py'])
+    settings.run()
     
 def browse_scene_file(scene_entry):
     file_path = filedialog.askopenfilename(filetypes=[("Blender Files", "*.blend")])
