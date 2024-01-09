@@ -84,14 +84,17 @@ def render():
         except subprocess.CalledProcessError as e:
             messagebox.showerror("RenderError", "An error occurred during rendering. Please check the console output for more information.")
             console_output_text = f"Error during rendering: {e.stderr}"
+            status_label.config(text="Aborted due to error.")
         except FileNotFoundError as e:
             messagebox.showerror("ExeError", "The selected blender executable does not exist. Please select a valid blender executable.")
+            status_label.config(text="Aborted due to error.")
 
     # Update the console output widget
     console_output.delete("1.0", tk.END)
     console_output.insert(tk.END, console_output_text)
 
     status_label.config(text="Rendering completed!")
+    messagebox.showinfo("RenderComplete", "Rendering completed!")
     
     # Check if the shutdown option is selected
     if shutdown_var.get() == 1:
