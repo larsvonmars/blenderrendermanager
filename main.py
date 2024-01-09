@@ -69,6 +69,7 @@ def render():
             # Check if the subprocess has finished
             if render_process.poll() is not None:
                 status_label.config(text="Rendering completed!")
+                messagebox.showinfo("RenderComplete", "Rendering completed!")
 
     for scene in scene_list:
         scene_file = scene.file
@@ -121,7 +122,6 @@ def render():
     console_output.insert(tk.END, console_output_text)
 
     status_label.config(text="Rendering completed!")
-    messagebox.showinfo("RenderComplete", "Rendering completed!")
     
     # Check if the shutdown option is selected
     if shutdown_var.get() == 1:
