@@ -9,4 +9,4 @@ developed by larsvonmars
 
 Build instruction:
 - Open terminal in folder
-- use `pyinstaller --onefile --windowed yourscript.py`
+- use `pyinstaller --onefile --windowed main.py`
