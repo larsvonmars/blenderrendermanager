@@ -51,8 +51,25 @@ def render():
         messagebox.showerror("ExeError", "No blender executable has been selected. Please select a blender executable.")
         return
 
-    status_label.config(text="Rendering in progress...")
+    #status_label.config(text="Rendering in progress...")
     window.update()
+
+    outputlog = []
+    def update_status_label():
+        # Read a line from the subprocess output
+        output_line = render_process.stdout.readline()
+
+        if output_line:
+            # Update the label with the new line
+            status_label.config(text=output_line.strip())
+            # add to outputlog
+            outputlog.append(output_line.toString())
+            # Schedule to call this function again
+            window.after(100, update_status_label)
+        else:
+            # Check if the subprocess has finished
+            if render_process.poll() is not None:
+                status_label.config(text="Rendering completed!")
 
     for scene in scene_list:
         scene_file = scene.file
@@ -79,16 +96,27 @@ def render():
         ]
 
         try:
-            render_process = subprocess.run(render_command, check=True, capture_output=True, text=True)
-            console_output_text = render_process.stdout
+            render_process = subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            update_status_label()
+
         except subprocess.CalledProcessError as e:
             messagebox.showerror("RenderError", "An error occurred during rendering. Please check the console output for more information.")
             console_output_text = f"Error during rendering: {e.stderr}"
             status_label.config(text="Aborted due to error.")
+            return
         except FileNotFoundError as e:
             messagebox.showerror("ExeError", "The selected blender executable does not exist. Please select a valid blender executable.")
             status_label.config(text="Aborted due to error.")
+            return
+        except Exception as e:
+            messagebox.showerror("InternalError", "An internal error occurred during rendering:" + "\n" + str(e))
+            console_output_text = f"Error during rendering: {e}"
+            status_label.config(text="Aborted due to error.")
+            return
 
+    for i in output_entry:
+        blenderoutput = blenderoutput + "\n" + i
+    console_output_text = blenderoutput
     # Update the console output widget
     console_output.delete("1.0", tk.END)
     console_output.insert(tk.END, console_output_text)
@@ -163,6 +191,7 @@ window = tk.Tk()
 window.title("Blender Render")
 #blender_entry = tk.Entry(window, width=50)
 #blender_entry.pack()
+
 # Add menu bar
 menubar = tk.Menu(window)
 file = tk.Menu(menubar, tearoff=0)
