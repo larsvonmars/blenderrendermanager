@@ -20,8 +20,8 @@ def save_settings():
 
 def browse_blender_executable():
     file_path = filedialog.askopenfilename(filetypes=[("Blender Executable", "blender.exe")])
-    blender_entry.delete(0, tk.END)
-    blender_entry.insert(0, file_path)
+    settings_entry.delete(0, tk.END)
+    settings_entry.insert(0, file_path)
 
 settings_window.title("Settings")
 settings_window.resizable(False, False)
@@ -32,15 +32,20 @@ settings_window.resizable(False, False)
 blender_label = tk.Label(settings_window, text="Blender Executable Path:")
 blender_label.pack()
 
-blender_entry = tk.Entry(settings_window, width=50)
-blender_entry.pack()
+settings_entry = tk.Entry(settings_window, width=50)
+settings_entry.pack()
 
 browse_blender_button = tk.Button(settings_window, text="Browse", command=browse_blender_executable)
 browse_blender_button.pack()
+
+
+# Save settings button
+save_settings_button = tk.Button(settings_window, text="Save Settings", command=save_settings)
+save_settings_button.pack()
 
 # Load the Blender executable path from settings.ini if it exists
 config = configparser.ConfigParser()
 config.read('settings.ini')
 if 'Blender' in config and 'ExecutablePath' in config['Blender']:
-    blender_entry.insert(0, config['Blender']['ExecutablePath'])
+    settings_entry.insert(0, config['Blender']['ExecutablePath'])
 settings_window.mainloop()

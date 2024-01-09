@@ -164,10 +164,6 @@ file.add_command(label="Settings", command=open_settings)
 menubar.add_cascade(label="File", menu=file)
 window.config(menu=menubar)
 
-# Save settings button
-# save_settings_button = tk.Button(window, text="Save Settings", command=save_settings)
-# save_settings_button.pack()
-
 # Scene file selection
 scene_label = tk.Label(window, text="Scene File:")
 scene_label.pack()
