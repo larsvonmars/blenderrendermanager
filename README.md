@@ -6,3 +6,7 @@ finishing.
 
 No installation neccessary, simply download the exe file.
 developed by larsvonmars
+
+Build instruction:
+- Open terminal in folder
+- use `pyinstaller --onefile --windowed yourscript.py`
