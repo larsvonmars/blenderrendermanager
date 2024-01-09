@@ -63,8 +63,6 @@ def render():
         if output_line:
             # Update the label with the new line
             status_label.config(text=output_line.strip())
-            # add to outputlog
-            outputlog.append(output_line.toString())
             # Schedule to call this function again
             window.after(100, update_status_label)
         else:
@@ -115,9 +113,9 @@ def render():
             status_label.config(text="Aborted due to error.")
             return
 
-    for i in output_entry:
+    """ for i in output_entry:
         blenderoutput = blenderoutput + "\n" + i
-    console_output_text = blenderoutput
+    console_output_text = blenderoutput """
     # Update the console output widget
     console_output.delete("1.0", tk.END)
     console_output.insert(tk.END, console_output_text)
