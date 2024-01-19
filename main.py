@@ -63,6 +63,8 @@ def render():
         if output_line:
             # Update the label with the new line
             status_label.config(text=output_line.strip())
+            # Append the line to outputlog
+            outputlog.append(output_line.strip())
             # Schedule to call this function again
             window.after(100, update_status_label)
         else:
@@ -114,12 +116,9 @@ def render():
             status_label.config(text="Aborted due to error.")
             return
 
-    """ for i in output_entry:
-        blenderoutput = blenderoutput + "\n" + i
-    console_output_text = blenderoutput """
     # Update the console output widget
     console_output.delete("1.0", tk.END)
-    console_output.insert(tk.END, console_output_text)
+    console_output.insert(tk.END, outputlog)
 
     status_label.config(text="Rendering completed!")
     
@@ -131,8 +130,6 @@ def render():
 config = configparser.ConfigParser()
 config.read('settings.ini')
 
-config = configparser.ConfigParser()
-config.read('settings.ini')
 if 'Blender' in config and 'ExecutablePath' in config['Blender']:
     blender_executable_path = config['Blender']['ExecutablePath']
 
@@ -152,8 +149,17 @@ def browse_output_folder(output_entry):
 def add_scene():
     scene_file = scene_entry.get()
     output_folder = output_entry.get()
-    frame_start = int(frame_start_entry.get())
-    frame_end = int(frame_end_entry.get())
+    
+    try:
+        frame_start = int(frame_start_entry.get())
+        frame_end = int(frame_end_entry.get())
+    except ValueError:
+        messagebox.showerror("InputError", "Frame start and end must be integers.")
+        return
+
+    if frame_start > frame_end:
+        messagebox.showerror("InputError", "Frame start cannot be greater than frame end.")
+        return
 
     if not scene_file.strip():
         messagebox.showerror("SceneFileInvalidError", "Please select a scene file to add.")
