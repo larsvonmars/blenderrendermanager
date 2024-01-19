@@ -97,6 +97,14 @@ def render():
             '-x', '1',
         ]
 
+        if shutdown_var.get() == 1:
+            confirm_shutdown = messagebox.askyesno("Confirm Shutdown", "Do you want to shut down the computer after rendering completes? Make sure all your work is saved.")
+            if confirm_shutdown:
+                messagebox.showinfo("Shutdown confirmed", "Shutting down after rendering...")
+            else:
+                messagebox.showinfo("Shutdown cancelled", "Shutdown after rendering cancelled.")
+                shutdown_var.set(0)
+        
         try:
             render_process = subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             update_status_label()
