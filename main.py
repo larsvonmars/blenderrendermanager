@@ -40,102 +40,23 @@ def render_process(scene):
     except Exception as e:
         render_queue.put(f"Error during rendering: {e}")
 
+def update_gui():
+    while not render_queue.empty():
+        message = render_queue.get_nowait()
+        status_label.config(text=message)
+        console_output.insert(tk.END, message + "\n")
+    window.after(100, update_gui)  # Schedule the next update
+    
 def render():
-    # Check if the scene list is empty
     if not scene_list:
         messagebox.showerror("NoElementError", "No scenes have been added. Please add at least one scene to render.")
         return
-    
-    config = configparser.ConfigParser()
-    config.read('settings.ini')
-    blender_executable = blender_executable_path
-    if blender_executable == "":
-        messagebox.showerror("ExeError", "No blender executable has been selected. Please select a blender executable.")
-        return
-
-    #status_label.config(text="Rendering in progress...")
-    window.update()
-
-    outputlog = []
-    def update_status_label():
-        # Read a line from the subprocess output
-        output_line = render_process.stdout.readline()
-
-        if output_line:
-            # Update the label with the new line
-            status_label.config(text=output_line.strip())
-            # Append the line to outputlog
-            outputlog.append(output_line.strip())
-            # Schedule to call this function again
-            window.after(100, update_status_label)
-        else:
-            # Check if the subprocess has finished
-            if render_process.poll() is not None:
-                status_label.config(text="Rendering completed!")
-                messagebox.showinfo("RenderComplete", "Rendering completed!")
 
     for scene in scene_list:
-        scene_file = scene.file
-        output_folder = scene.output_folder
-        frame_start = scene.frame_start
-        frame_end = scene.frame_end
-
-        # Convert the output folder path to an absolute path
-        if not output_folder:
-            blend_dir = os.path.dirname(scene_file)
-            output_folder = os.path.join(blend_dir, 'output')
-
-        output_folder = os.path.abspath(output_folder)
-
-        render_command = [
-            blender_executable,
-            '-b', scene_file,
-            '-o', os.path.join(output_folder, "frame_####"),
-            '-s', str(frame_start),
-            '-e', str(frame_end),
-            '-a',
-            '-F', 'PNG',
-            '-x', '1',
-        ]
-        # Ask the user to confirm shutdown if the shutdown option is selected
-        if shutdown_var.get() == 1:
-            confirm_shutdown = messagebox.askyesno("Confirm Shutdown", "Do you want to shut down the computer after rendering completes? Make sure all your work is saved.")
-            if confirm_shutdown:
-                messagebox.showinfo("Shutdown confirmed", "Shutting down after rendering...")
-            else:
-                messagebox.showinfo("Shutdown cancelled", "Shutdown after rendering cancelled.")
-                shutdown_var.set(0)
-        
-        # Starting the actual rendering process
-        try:
-            render_process = subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-            update_status_label()
-
-        except subprocess.CalledProcessError as e:
-            messagebox.showerror("RenderError", "An error occurred during rendering. Please check the console output for more information.")
-            console_output_text = f"Error during rendering: {e.stderr}"
-            status_label.config(text="Aborted due to error.")
-            return
-        except FileNotFoundError as e:
-            messagebox.showerror("ExeError", "The selected blender executable does not exist. Please select a valid blender executable.")
-            status_label.config(text="Aborted due to error.")
-            return
-        except Exception as e:
-            messagebox.showerror("InternalError", "An internal error occurred during rendering:" + "\n" + str(e))
-            console_output_text = f"Error during rendering: {e}"
-            status_label.config(text="Aborted due to error.")
-            return
-
-    # Update the console output widget
-    console_output.delete("1.0", tk.END)
-    console_output.insert(tk.END, outputlog)
-
-    status_label.config(text="Rendering completed!")
+        render_thread = threading.Thread(target=render_process, args=(scene,))
+        render_thread.start()
     
-    # Check if the shutdown option is selected, if yes initiate shutdown
-    if shutdown_var.get() == 1:
-        shutdown_command = "shutdown /s /t 0"
-        subprocess.run(shutdown_command, shell=True)
+    update_gui()  # Start updating the GUI
 
 config = configparser.ConfigParser()
 config.read('settings.ini')
