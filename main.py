@@ -14,18 +14,19 @@ render_settings = {}
 render_queue = queue.Queue()
 
 class Scene:
-    def __init__(self, file, output_folder, frame_start, frame_end):
+    def __init__(self, file, output_folder, frame_start, frame_end, prefix):
         self.file = file
         self.output_folder = output_folder
         self.frame_start = frame_start
         self.frame_end = frame_end
+        self.prefix = prefix
 
 def render_process(scene):
     try:
         render_command = [
             blender_executable_path,
             '-b', scene.file,
-            '-o', os.path.join(scene.output_folder, "frame_####"),
+            '-o', os.path.join(scene.output_folder, scene.prefix  + "_"),
             '-s', str(scene.frame_start),
             '-e', str(scene.frame_end),
             '-a',
@@ -84,6 +85,7 @@ def browse_output_folder(output_entry):
 def add_scene():
     scene_file = scene_entry.get()
     output_folder = output_entry.get()
+    scene_prefix = prefix_entry.get()
     
     try:
         frame_start = int(frame_start_entry.get())
@@ -104,11 +106,11 @@ def add_scene():
         messagebox.showerror("SceneFileInvalidError", "The selected file is not a .blend file. Please select a valid Blender scene file.")
         return
     
-    scene = Scene(scene_file, output_folder, frame_start, frame_end)
+    scene = Scene(scene_file, output_folder, frame_start, frame_end, scene_prefix)
     scene_list.append(scene)
 
     # Update the listbox to display the added scene
-    scene_info = f"File: {scene_file}, Output: {output_folder or 'Blend File Directory'}, Frames: {frame_start}-{frame_end}"
+    scene_info = f"File: {scene_file}, Prefix: {scene_prefix} Output: {output_folder or 'Blend File Directory'}, Frames: {frame_start}-{frame_end}"
     scene_listbox.insert(tk.END, scene_info)
 
     # Update the width of the listbox based on the longest line of text
@@ -157,6 +159,13 @@ output_entry.pack()
 
 browse_output_button = tk.Button(window, text="Browse", command=lambda: browse_output_folder(output_entry))
 browse_output_button.pack()
+
+# Prefix input
+prefix_label = tk.Label(window, text="Filename Prefix:")
+prefix_label.pack()
+
+prefix_entry = tk.Entry(window, width=50)
+prefix_entry.pack()
 
 # Frame range inputs
 frame_start_label = tk.Label(window, text="Frame Start:")
