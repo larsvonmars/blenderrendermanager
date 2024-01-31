@@ -32,13 +32,17 @@ def render_process(scene):
             '-F', 'PNG',
             '-x', '1',
         ]
-        render_process = subprocess.run(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        render_queue.put(render_process.stdout)
-        for output_line in iter(render_process.stdout.readline, ''):
-            render_queue.put(output_line.strip())
+        
+        # Start the rendering process
+        with subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as proc:
+            for output_line in iter(proc.stdout.readline, ''):
+                render_queue.put(output_line.strip())
+
         render_queue.put("Rendering completed for scene.")
+    
     except Exception as e:
-        render_queue.put(f"Error during rendering: {e}")
+        render_queue.put(f"Error while rendering scene: {e}")
+        messagebox.showerror("RenderError", f"We're sorry, but it seems like something has gone wrong while rendering:" + "\n" + str(e))
 
 def update_gui():
     while not render_queue.empty():
@@ -46,7 +50,7 @@ def update_gui():
         status_label.config(text=message)
         console_output.insert(tk.END, message + "\n")
     window.after(100, update_gui)  # Schedule the next update
-    
+
 def render():
     if not scene_list:
         messagebox.showerror("NoElementError", "No scenes have been added. Please add at least one scene to render.")
