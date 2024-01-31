@@ -6,9 +6,12 @@ import os
 from tkinter import messagebox
 import configparser
 import settings
-
+import threading
+import queue
 
 blender_executable_path = ""
+render_settings = {}
+render_queue = queue.Queue()
 
 class Scene:
     def __init__(self, file, output_folder, frame_start, frame_end):
@@ -17,27 +20,25 @@ class Scene:
         self.frame_start = frame_start
         self.frame_end = frame_end
 
-""" def save_settings():
-    global blender_executable_path
-
-    config = configparser.ConfigParser()
-    config['Blender'] = {'ExecutablePath': blender_entry.get()}
-    with open('settings.ini', 'w') as configfile:
-        config.write(configfile)
-
-    blender_executable_path = blender_entry.get()
-
-    with open('settings.ini', 'w') as configfile:
-        config.write(configfile)
-
-    # Load Blender executable path from settings.ini
-    if 'Blender' in config and 'ExecutablePath' in config['Blender']:
-        blender_executable = config['Blender']['ExecutablePath']
-        blender_entry.delete(0, tk.END)
-        blender_entry.insert(0, blender_executable)
- """
-
-render_settings = {}
+def render_process(scene):
+    try:
+        render_command = [
+            blender_executable_path,
+            '-b', scene.file,
+            '-o', os.path.join(scene.output_folder, "frame_####"),
+            '-s', str(scene.frame_start),
+            '-e', str(scene.frame_end),
+            '-a',
+            '-F', 'PNG',
+            '-x', '1',
+        ]
+        render_process = subprocess.run(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        render_queue.put(render_process.stdout)
+        for output_line in iter(render_process.stdout.readline, ''):
+            render_queue.put(output_line.strip())
+        render_queue.put("Rendering completed for scene.")
+    except Exception as e:
+        render_queue.put(f"Error during rendering: {e}")
 
 def render():
     # Check if the scene list is empty
@@ -96,7 +97,7 @@ def render():
             '-F', 'PNG',
             '-x', '1',
         ]
-
+        # Ask the user to confirm shutdown if the shutdown option is selected
         if shutdown_var.get() == 1:
             confirm_shutdown = messagebox.askyesno("Confirm Shutdown", "Do you want to shut down the computer after rendering completes? Make sure all your work is saved.")
             if confirm_shutdown:
@@ -105,6 +106,7 @@ def render():
                 messagebox.showinfo("Shutdown cancelled", "Shutdown after rendering cancelled.")
                 shutdown_var.set(0)
         
+        # Starting the actual rendering process
         try:
             render_process = subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             update_status_label()
@@ -130,7 +132,7 @@ def render():
 
     status_label.config(text="Rendering completed!")
     
-    # Check if the shutdown option is selected
+    # Check if the shutdown option is selected, if yes initiate shutdown
     if shutdown_var.get() == 1:
         shutdown_command = "shutdown /s /t 0"
         subprocess.run(shutdown_command, shell=True)
