@@ -26,7 +26,7 @@ def render_process(scene):
         render_command = [
             blender_executable_path,
             '-b', scene.file,
-            '-o', os.path.join(scene.output_folder, scene.prefix),
+            '-o', os.path.join(scene.output_folder, scene.prefix  + "_"),
             '-s', str(scene.frame_start),
             '-e', str(scene.frame_end),
             '-a',
@@ -85,7 +85,7 @@ def browse_output_folder(output_entry):
 def add_scene():
     scene_file = scene_entry.get()
     output_folder = output_entry.get()
-    scene_prefix = prefix_entry.get() + "_"
+    scene_prefix = prefix_entry.get()
     
     try:
         frame_start = int(frame_start_entry.get())
