@@ -5,28 +5,58 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Blender Render Manager</h1>
-    <form action="/add" method="post" enctype="multipart/form-data">
-        <label>Scene File:</label><input type="file" name="scene_file" accept=".blend"><br>
+    <div class="container">
+        <h1>Blender Render Manager</h1>
+        <div id="status" class="status">Idle</div>
+        <form action="/add" method="post" enctype="multipart/form-data">
+            <label>Scene File:</label><input type="file" name="scene_file" accept=".blend"><br>
 
-        <label>Output Folder:</label><input type="text" name="output_folder" size="60"><br>
-        <label>Filename Prefix:</label><input type="text" name="prefix" size="20"><br>
-        <label>Frame Start:</label><input type="number" name="frame_start"><br>
-        <label>Frame End:</label><input type="number" name="frame_end"><br>
-        <input type="submit" value="Add Scene">
-    </form>
-    <h2>Scenes</h2>
-    <ul>
-        {% for s in scenes %}
-        <li>{{ s.file }} ({{ s.frame_start }}-{{ s.frame_end }})</li>
-        {% endfor %}
-    </ul>
-    <form action="/render" method="post">
-        <button type="submit">Render Scenes</button>
-    </form>
-    <form action="/clear" method="post">
-        <button type="submit">Clear Scenes</button>
-    </form>
-    <a href="/settings">Settings</a> | <a href="/logs">Logs</a>
+            <label>Output Folder:</label><input type="text" name="output_folder" size="60"><br>
+            <label>Filename Prefix:</label><input type="text" name="prefix" size="20"><br>
+            <label>Frame Start:</label><input type="number" name="frame_start"><br>
+            <label>Frame End:</label><input type="number" name="frame_end"><br>
+            <input type="submit" value="Add Scene">
+        </form>
+        <h2>Scenes</h2>
+        <ul class="scene-list">
+            {% for s in scenes %}
+            <li>
+                {{ s.file }} ({{ s.frame_start }}-{{ s.frame_end }})
+                <form action="/remove/{{ loop.index0 }}" method="post" style="display:inline;">
+                    <button type="submit">Remove</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        <form action="/render" method="post">
+            <button type="submit">Render Scenes</button>
+        </form>
+        <form action="/cancel" method="post" id="cancel-form" style="display:none;">
+            <button type="submit" id="cancel-btn">Cancel Rendering</button>
+        </form>
+        <form action="/clear" method="post">
+            <button type="submit">Clear Scenes</button>
+        </form>
+        <div class="links"><a href="/settings">Settings</a> | <a href="/logs">Logs</a></div>
+    </div>
+    <script>
+        function updateStatus() {
+            fetch('/status')
+                .then(r => r.json())
+                .then(data => {
+                    const status = document.getElementById('status');
+                    const cancelForm = document.getElementById('cancel-form');
+                    if (data.rendering) {
+                        status.textContent = `Rendering scene ${data.current_index}/${data.total}: ${data.current_file}`;
+                        cancelForm.style.display = 'block';
+                    } else {
+                        status.textContent = 'Idle';
+                        cancelForm.style.display = 'none';
+                    }
+                });
+        }
+        setInterval(updateStatus, 1000);
+        updateStatus();
+    </script>
 </body>
 </html>

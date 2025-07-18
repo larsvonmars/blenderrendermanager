@@ -2,7 +2,7 @@ import os
 import subprocess
 import threading
 import json
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
 
 import settings
@@ -33,6 +33,11 @@ scene_list = load_scene_list()
 log_lines = []
 render_thread = None
 blender_executable_path = settings.load_blender_executable()
+
+# rendering status tracking
+is_rendering = False
+current_scene_index = -1
+stop_event = threading.Event()
 
 
 class Scene:
@@ -72,6 +77,9 @@ def render_process(scene: Scene):
         log(f"[DEBUG] Render command: {' '.join(render_command)})")
         with subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as proc:
             for output_line in proc.stdout:
+                if stop_event.is_set():
+                    proc.terminate()
+                    break
                 log(output_line.strip())
         log(f"Rendering completed for {scene.file}")
     except Exception as e:
@@ -79,8 +87,18 @@ def render_process(scene: Scene):
 
 
 def run_rendering():
-    for scene in scene_list:
+    global is_rendering, current_scene_index
+    is_rendering = True
+    current_scene_index = -1
+    for idx, scene in enumerate(scene_list):
+        if stop_event.is_set():
+            break
+        current_scene_index = idx
+        log(f"--- Rendering scene {idx + 1}/{len(scene_list)}: {scene.file} ---")
         render_process(scene)
+    current_scene_index = -1
+    is_rendering = False
+    stop_event.clear()
     log("All scenes rendered")
 
 
@@ -121,13 +139,42 @@ def clear_scenes():
     return redirect(url_for('index'))
 
 
+@app.route('/remove/<int:idx>', methods=['POST'])
+def remove_scene(idx: int):
+    if 0 <= idx < len(scene_list):
+        scene_list.pop(idx)
+        save_scene_list()
+    return redirect(url_for('index'))
+
+
 @app.route('/render', methods=['POST'])
 def render():
     global render_thread
     if render_thread is None or not render_thread.is_alive():
-        render_thread = threading.Thread(target=run_rendering)
+        render_thread = threading.Thread(target=run_rendering, daemon=True)
         render_thread.start()
     return redirect(url_for('logs'))
+
+
+@app.route('/cancel', methods=['POST'])
+def cancel_render():
+    if render_thread and render_thread.is_alive():
+        stop_event.set()
+    return redirect(url_for('logs'))
+
+
+@app.route('/status')
+def status():
+    total = len(scene_list)
+    current_file = ''
+    if is_rendering and 0 <= current_scene_index < total:
+        current_file = scene_list[current_scene_index].file
+    return jsonify({
+        'rendering': is_rendering,
+        'current_index': current_scene_index + 1 if is_rendering else 0,
+        'total': total,
+        'current_file': current_file,
+    })
 
 
 @app.route('/logs')
