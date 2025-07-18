@@ -3,6 +3,7 @@ import subprocess
 import threading
 from flask import Flask, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
+
 import settings
 
 app = Flask(__name__)
@@ -10,7 +11,6 @@ app = Flask(__name__)
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
 scene_list = []
 log_lines = []
 render_thread = None
@@ -75,6 +75,7 @@ def add_scene():
         scene_file = save_path
     else:
         scene_file = request.form.get('scene_file', '')
+
     output_folder = request.form.get('output_folder', '')
     prefix = request.form.get('prefix', '')
     try:
@@ -122,6 +123,7 @@ def settings_view():
             blender_executable_path = save_path
         else:
             blender_executable_path = request.form.get('blender_path', '')
+
         settings.save_blender_executable(blender_executable_path)
         return redirect(url_for('index'))
     return render_template('settings.html', blender_path=blender_executable_path)
