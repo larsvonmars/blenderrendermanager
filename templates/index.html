@@ -15,6 +15,30 @@
             <label>Filename Prefix:</label><input type="text" name="prefix" size="20"><br>
             <label>Frame Start:</label><input type="number" name="frame_start"><br>
             <label>Frame End:</label><input type="number" name="frame_end"><br>
+            <label>Resolution X:</label><input type="number" name="resolution_x"><br>
+            <label>Resolution Y:</label><input type="number" name="resolution_y"><br>
+            <label>Engine:</label>
+            <select name="engine">
+                <option value="">Default</option>
+                <option value="CYCLES">Cycles</option>
+                <option value="BLENDER_EEVEE">Eevee</option>
+            </select><br>
+            <label>Samples:</label><input type="number" name="samples"><br>
+            <label>File Format:</label>
+            <select name="file_format">
+                <option value="">Default</option>
+                <option value="PNG">PNG</option>
+                <option value="JPEG">JPEG</option>
+                <option value="TIFF">TIFF</option>
+                <option value="OPEN_EXR">OPEN_EXR</option>
+            </select><br>
+            <label>Color Depth:</label>
+            <select name="color_depth">
+                <option value="">Default</option>
+                <option value="8">8</option>
+                <option value="16">16</option>
+            </select><br>
+            <label>FPS:</label><input type="number" name="fps"><br>
             <input type="submit" value="Add Scene">
         </form>
         <h2>Scenes</h2>
@@ -22,6 +46,11 @@
             {% for s in scenes %}
             <li>
                 {{ s.file }} ({{ s.frame_start }}-{{ s.frame_end }})
+                <span class="details">
+                    {% if s.resolution_x and s.resolution_y %}{{ s.resolution_x }}x{{ s.resolution_y }} {% endif %}
+                    {% if s.engine %}{{ s.engine }} {% endif %}
+                    {% if s.file_format %}{{ s.file_format }}{% endif %}
+                </span>
                 <form action="/remove/{{ loop.index0 }}" method="post" style="display:inline;">
                     <button type="submit">Remove</button>
                 </form>
