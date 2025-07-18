@@ -1,7 +1,15 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f4f4f4;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.container {
+    width: 90%;
+    max-width: 800px;
+    margin: 30px auto;
 }
 
 h1 {
@@ -10,7 +18,7 @@ h1 {
 
 form {
     margin-bottom: 20px;
-    background: #fff;
+    background: rgba(255,255,255,0.9);
     padding: 15px;
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -39,6 +47,7 @@ button, input[type="submit"] {
     background-color: #007bff;
     color: white;
     cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 button:hover, input[type="submit"]:hover {
@@ -54,6 +63,10 @@ pre {
     overflow-y: scroll;
 }
 
+.links {
+    margin-top: 10px;
+}
+
 ul {
     list-style-type: none;
     padding-left: 0;
@@ -61,4 +74,9 @@ ul {
 
 li {
     padding: 3px 0;
+}
+
+.status {
+    margin-bottom: 10px;
+    font-weight: bold;
 }

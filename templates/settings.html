@@ -5,12 +5,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Settings</h1>
-    <form action="/settings" method="post">
-        <label for="blender_path">Blender Executable Path:</label>
-        <input type="text" name="blender_path" id="blender_path" value="{{ blender_path }}" style="width: 400px;"><br>
-        <input type="submit" value="Save">
-    </form>
-    <a href="/">Back</a>
+    <div class="container">
+        <h1>Settings</h1>
+        <form action="/settings" method="post">
+            <label for="blender_path">Blender Executable Path:</label>
+            <input type="text" name="blender_path" id="blender_path" value="{{ blender_path }}" style="width: 400px;"><br>
+            <input type="submit" value="Save">
+        </form>
+        <div class="links"><a href="/">Back</a></div>
+    </div>
 </body>
 </html>

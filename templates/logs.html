@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-<html>
 <head>
     <title>Logs</title>
     <link rel="stylesheet" href="/static/style.css">
@@ -18,9 +17,14 @@
     </style>
 </head>
 <body>
-    <h1>Logs</h1>
-    
-    <pre id="log-text">{{ log_text }}</pre>
+    <div class="container">
+        <h1>Logs</h1>
+        <div id="status" class="status">Idle</div>
+        <pre id="log-text">{{ log_text }}</pre>
+        <p>Click the button below to copy the logs to your clipboard.</p>
+        <button class="copy-btn" onclick="copyLogs()">Copy</button>
+        <div class="links"><a href="/">Back</a></div>
+    </div>
     <script>
         function copyLogs() {
             const logText = document.getElementById('log-text').innerText;
@@ -30,10 +34,31 @@
                 alert('Failed to copy logs: ' + err);
             });
         }
-    </script>
-    <p>Click the button below to copy the logs to your clipboard.</p>
-    <button class="copy-btn" onclick="copyLogs()">Copy</button>
-    <a href="/">Whack</a>
-</body>
 
+        function updateLogs() {
+            fetch('/logs?plain=1')
+                .then(r => r.text())
+                .then(text => {
+                    const logText = document.getElementById('log-text');
+                    logText.textContent = text;
+                    logText.scrollTop = logText.scrollHeight;
+                });
+        }
+        function updateStatus() {
+            fetch('/status')
+                .then(r => r.json())
+                .then(data => {
+                    const status = document.getElementById('status');
+                    if (data.rendering) {
+                        status.textContent = `Rendering scene ${data.current_index}/${data.total}: ${data.current_file}`;
+                    } else {
+                        status.textContent = 'Idle';
+                    }
+                });
+        }
+        setInterval(function() { updateLogs(); updateStatus(); }, 1000);
+        updateLogs();
+        updateStatus();
+    </script>
+</body>
 </html>
