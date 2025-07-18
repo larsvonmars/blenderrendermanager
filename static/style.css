@@ -80,3 +80,8 @@ li {
     margin-bottom: 10px;
     font-weight: bold;
 }
+
+.details {
+    font-size: 0.9em;
+    color: #555;
+}

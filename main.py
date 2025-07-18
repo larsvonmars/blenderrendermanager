@@ -41,12 +41,21 @@ stop_event = threading.Event()
 
 
 class Scene:
-    def __init__(self, file, output_folder, frame_start, frame_end, prefix):
+    def __init__(self, file, output_folder, frame_start, frame_end, prefix,
+                 resolution_x=None, resolution_y=None, engine=None, samples=None,
+                 file_format=None, color_depth=None, fps=None):
         self.file = file
         self.output_folder = output_folder
         self.frame_start = frame_start
         self.frame_end = frame_end
         self.prefix = prefix
+        self.resolution_x = resolution_x
+        self.resolution_y = resolution_y
+        self.engine = engine
+        self.samples = samples
+        self.file_format = file_format
+        self.color_depth = color_depth
+        self.fps = fps
 
 
 def log(message: str):
@@ -74,6 +83,20 @@ def render_process(scene: Scene):
             '--frame-start', str(scene.frame_start),
             '--frame-end', str(scene.frame_end),
         ]
+        if scene.resolution_x is not None:
+            render_command += ['--resolution-x', str(scene.resolution_x)]
+        if scene.resolution_y is not None:
+            render_command += ['--resolution-y', str(scene.resolution_y)]
+        if scene.engine:
+            render_command += ['--engine', scene.engine]
+        if scene.samples is not None:
+            render_command += ['--samples', str(scene.samples)]
+        if scene.file_format:
+            render_command += ['--file-format', scene.file_format]
+        if scene.color_depth:
+            render_command += ['--color-depth', scene.color_depth]
+        if scene.fps is not None:
+            render_command += ['--fps', str(scene.fps)]
         log(f"[DEBUG] Render command: {' '.join(render_command)})")
         with subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as proc:
             for output_line in proc.stdout:
@@ -125,9 +148,26 @@ def add_scene():
         frame_end = int(request.form.get('frame_end', 0))
     except ValueError:
         return redirect(url_for('index'))
+    def opt_int(name):
+        val = request.form.get(name)
+        try:
+            return int(val) if val else None
+        except (TypeError, ValueError):
+            return None
+    resolution_x = opt_int('resolution_x')
+    resolution_y = opt_int('resolution_y')
+    samples = opt_int('samples')
+    fps = opt_int('fps')
+    engine = request.form.get('engine') or None
+    file_format = request.form.get('file_format') or None
+    color_depth = request.form.get('color_depth') or None
     if not scene_file:
         return redirect(url_for('index'))
-    scene_list.append(Scene(scene_file, output_folder, frame_start, frame_end, prefix))
+    scene_list.append(Scene(
+        scene_file, output_folder, frame_start, frame_end, prefix,
+        resolution_x=resolution_x, resolution_y=resolution_y,
+        engine=engine, samples=samples, file_format=file_format,
+        color_depth=color_depth, fps=fps))
     save_scene_list()
     return redirect(url_for('index'))
 
