@@ -1,16 +1,39 @@
 <!DOCTYPE html>
 <html>
+<html>
 <head>
-    <title>Render Logs</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-    <script>
-    setInterval(function(){ fetch('/logs?plain=1').then(r=>r.text()).then(t=>{document.getElementById('log').textContent=t}); }, 2000);
-    </script>
+    <title>Logs</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        #log-text {
+            width: 100%;
+            height: 400px;
+            font-family: monospace;
+            white-space: pre;
+            overflow: auto;
+        }
+        .copy-btn {
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
     <h1>Logs</h1>
-    <pre id="log">{{ log_text }}</pre>
-    <a href="/">Back</a>
+    
+    <pre id="log-text">{{ log_text }}</pre>
+    <script>
+        function copyLogs() {
+            const logText = document.getElementById('log-text').innerText;
+            navigator.clipboard.writeText(logText).then(function() {
+                alert('Logs copied to clipboard!');
+            }, function(err) {
+                alert('Failed to copy logs: ' + err);
+            });
+        }
+    </script>
+    <p>Click the button below to copy the logs to your clipboard.</p>
+    <button class="copy-btn" onclick="copyLogs()">Copy</button>
+    <a href="/">Whack</a>
 </body>
+
 </html>

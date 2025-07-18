@@ -1,6 +1,7 @@
 import os
 import subprocess
 import threading
+import json
 from flask import Flask, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
 
@@ -11,7 +12,24 @@ app = Flask(__name__)
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-scene_list = []
+
+SCENE_LIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scene_list.json')
+
+def load_scene_list():
+    if os.path.exists(SCENE_LIST_FILE):
+        with open(SCENE_LIST_FILE, 'r', encoding='utf-8') as f:
+            try:
+                data = json.load(f)
+                return [Scene(**scene) for scene in data]
+            except Exception:
+                return []
+    return []
+
+def save_scene_list():
+    with open(SCENE_LIST_FILE, 'w', encoding='utf-8') as f:
+        json.dump([scene.__dict__ for scene in scene_list], f, indent=2)
+
+scene_list = load_scene_list()
 log_lines = []
 render_thread = None
 blender_executable_path = settings.load_blender_executable()
@@ -35,6 +53,11 @@ def render_process(scene: Scene):
     try:
         script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'render_blender.py')
         output_dir = scene.output_folder or os.path.dirname(scene.file)
+        # Log file existence and paths
+        log(f"[DEBUG] Blender executable: {blender_executable_path} (exists: {os.path.exists(blender_executable_path)})")
+        log(f"[DEBUG] Script path: {script_path} (exists: {os.path.exists(script_path)})")
+        log(f"[DEBUG] Blend file: {scene.file} (exists: {os.path.exists(scene.file)})")
+        log(f"[DEBUG] Output dir: {output_dir} (exists: {os.path.exists(output_dir)})")
         render_command = [
             blender_executable_path,
             '--background',
@@ -46,6 +69,7 @@ def render_process(scene: Scene):
             '--frame-start', str(scene.frame_start),
             '--frame-end', str(scene.frame_end),
         ]
+        log(f"[DEBUG] Render command: {' '.join(render_command)})")
         with subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as proc:
             for output_line in proc.stdout:
                 log(output_line.strip())
@@ -86,12 +110,14 @@ def add_scene():
     if not scene_file:
         return redirect(url_for('index'))
     scene_list.append(Scene(scene_file, output_folder, frame_start, frame_end, prefix))
+    save_scene_list()
     return redirect(url_for('index'))
 
 
 @app.route('/clear', methods=['POST'])
 def clear_scenes():
     scene_list.clear()
+    save_scene_list()
     return redirect(url_for('index'))
 
 
@@ -115,15 +141,8 @@ def logs():
 def settings_view():
     global blender_executable_path
     if request.method == 'POST':
-        uploaded_exec = request.files.get('blender_path')
-        if uploaded_exec and uploaded_exec.filename:
-            filename = secure_filename(uploaded_exec.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            uploaded_exec.save(save_path)
-            blender_executable_path = save_path
-        else:
-            blender_executable_path = request.form.get('blender_path', '')
-
+        # Only allow entering a path, do not allow upload
+        blender_executable_path = request.form.get('blender_path', '')
         settings.save_blender_executable(blender_executable_path)
         return redirect(url_for('index'))
     return render_template('settings.html', blender_path=blender_executable_path)

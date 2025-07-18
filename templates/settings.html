@@ -6,10 +6,9 @@
 </head>
 <body>
     <h1>Settings</h1>
-    <form action="/settings" method="post" enctype="multipart/form-data">
-        <label>Blender Executable Path:</label>
-        <input type="file" name="blender_path"><br>
-
+    <form action="/settings" method="post">
+        <label for="blender_path">Blender Executable Path:</label>
+        <input type="text" name="blender_path" id="blender_path" value="{{ blender_path }}" style="width: 400px;"><br>
         <input type="submit" value="Save">
     </form>
     <a href="/">Back</a>
