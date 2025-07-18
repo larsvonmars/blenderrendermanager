@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Settings</h1>
+    <form action="/settings" method="post" enctype="multipart/form-data">
+        <label>Blender Executable Path:</label>
+        <input type="file" name="blender_path"><br>
+        <input type="submit" value="Save">
+    </form>
+    <a href="/">Back</a>
+</body>
+</html>
