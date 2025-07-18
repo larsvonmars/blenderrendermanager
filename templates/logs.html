@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>Render Logs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
     <script>
     setInterval(function(){ fetch('/logs?plain=1').then(r=>r.text()).then(t=>{document.getElementById('log').textContent=t}); }, 2000);
     </script>

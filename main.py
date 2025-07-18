@@ -2,10 +2,15 @@ import os
 import subprocess
 import threading
 from flask import Flask, render_template, request, redirect, url_for
+from werkzeug.utils import secure_filename
+
 import settings
 
 app = Flask(__name__)
 
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 scene_list = []
 log_lines = []
 render_thread = None
@@ -62,7 +67,15 @@ def index():
 
 @app.route('/add', methods=['POST'])
 def add_scene():
-    scene_file = request.form.get('scene_file', '')
+    uploaded_file = request.files.get('scene_file')
+    if uploaded_file and uploaded_file.filename:
+        filename = secure_filename(uploaded_file.filename)
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        uploaded_file.save(save_path)
+        scene_file = save_path
+    else:
+        scene_file = request.form.get('scene_file', '')
+
     output_folder = request.form.get('output_folder', '')
     prefix = request.form.get('prefix', '')
     try:
@@ -102,7 +115,15 @@ def logs():
 def settings_view():
     global blender_executable_path
     if request.method == 'POST':
-        blender_executable_path = request.form.get('blender_path', '')
+        uploaded_exec = request.files.get('blender_path')
+        if uploaded_exec and uploaded_exec.filename:
+            filename = secure_filename(uploaded_exec.filename)
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            uploaded_exec.save(save_path)
+            blender_executable_path = save_path
+        else:
+            blender_executable_path = request.form.get('blender_path', '')
+
         settings.save_blender_executable(blender_executable_path)
         return redirect(url_for('index'))
     return render_template('settings.html', blender_path=blender_executable_path)
