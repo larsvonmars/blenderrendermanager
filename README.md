@@ -1,15 +1,13 @@
 # RenderManager
 
-A very simple .exe for starting render jobs from outside Blender, made
-for batch rendering and rendering longer jobs with automatic shutdown after
-finishing.
+A simple tool for managing Blender render jobs. The application now exposes a small web interface instead of a desktop window.
 
 Prerequisites:
-- Python
-- blender.py
+- Blender (to provide the `bpy` module)
+- Python with the `Flask` package installed
 
-No installation neccessary, simply download the exe file.
-developed by larsvonmars
+No installation necessary, simply run `python main.py` and open your browser to `http://localhost:5000`.
+Developed by larsvonmars.
 
 Build instruction:
 - Open terminal in folder

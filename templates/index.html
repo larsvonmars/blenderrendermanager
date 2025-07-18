@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blender Render Manager</title>
+</head>
+<body>
+    <h1>Blender Render Manager</h1>
+    <form action="/add" method="post">
+        <label>Scene File:</label><input type="text" name="scene_file" size="60"><br>
+        <label>Output Folder:</label><input type="text" name="output_folder" size="60"><br>
+        <label>Filename Prefix:</label><input type="text" name="prefix" size="20"><br>
+        <label>Frame Start:</label><input type="number" name="frame_start"><br>
+        <label>Frame End:</label><input type="number" name="frame_end"><br>
+        <input type="submit" value="Add Scene">
+    </form>
+    <h2>Scenes</h2>
+    <ul>
+        {% for s in scenes %}
+        <li>{{ s.file }} ({{ s.frame_start }}-{{ s.frame_end }})</li>
+        {% endfor %}
+    </ul>
+    <form action="/render" method="post">
+        <button type="submit">Render Scenes</button>
+    </form>
+    <form action="/clear" method="post">
+        <button type="submit">Clear Scenes</button>
+    </form>
+    <a href="/settings">Settings</a> | <a href="/logs">Logs</a>
+</body>
+</html>
