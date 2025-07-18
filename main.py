@@ -1,17 +1,21 @@
-import subprocess
-import tkinter as tk
-from tkinter import filedialog
-import configparser
 import os
-from tkinter import messagebox
-import configparser
-import settings
+import subprocess
 import threading
-import queue
+from flask import Flask, render_template, request, redirect, url_for
+from werkzeug.utils import secure_filename
+import settings
 
-blender_executable_path = ""
-render_settings = {}
-render_queue = queue.Queue()
+app = Flask(__name__)
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+scene_list = []
+log_lines = []
+render_thread = None
+blender_executable_path = settings.load_blender_executable()
+
 
 class Scene:
     def __init__(self, file, output_folder, frame_start, frame_end, prefix):
@@ -21,193 +25,108 @@ class Scene:
         self.frame_end = frame_end
         self.prefix = prefix
 
-def render_process(scene):
+
+def log(message: str):
+    print(message)
+    log_lines.append(message)
+
+
+def render_process(scene: Scene):
     try:
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'render_blender.py')
+        output_dir = scene.output_folder or os.path.dirname(scene.file)
         render_command = [
             blender_executable_path,
-            '-b', scene.file,
-            '-o', os.path.join(scene.output_folder, scene.prefix  + "_"),
-            '-s', str(scene.frame_start),
-            '-e', str(scene.frame_end),
-            '-a',
-            '-F', 'PNG',
-            '-x', '1',
+            '--background',
+            '--python', script_path,
+            '--',
+            '--blend-file', scene.file,
+            '--output-dir', output_dir,
+            '--prefix', scene.prefix,
+            '--frame-start', str(scene.frame_start),
+            '--frame-end', str(scene.frame_end),
         ]
-        
-        # Start the rendering process
         with subprocess.Popen(render_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as proc:
-            for output_line in iter(proc.stdout.readline, ''):
-                render_queue.put(output_line.strip())
-
-        render_queue.put("Rendering completed for scene.")
-    
+            for output_line in proc.stdout:
+                log(output_line.strip())
+        log(f"Rendering completed for {scene.file}")
     except Exception as e:
-        render_queue.put(f"Error while rendering scene: {e}")
-        messagebox.showerror("RenderError", f"We're sorry, but it seems like something has gone wrong while rendering:" + "\n" + str(e))
+        log(f"Error while rendering scene {scene.file}: {e}")
 
-def update_gui():
-    while not render_queue.empty():
-        message = render_queue.get_nowait()
-        status_label.config(text=message)
-        console_output.insert(tk.END, message + "\n")
-    window.after(100, update_gui)  # Schedule the next update
 
-def render():
-    if not scene_list:
-        messagebox.showerror("NoElementError", "No scenes have been added. Please add at least one scene to render.")
-        return
-
+def run_rendering():
     for scene in scene_list:
-        render_thread = threading.Thread(target=render_process, args=(scene,))
-        render_thread.start()
-    
-    update_gui()  # Start updating the GUI
+        render_process(scene)
+    log("All scenes rendered")
 
-config = configparser.ConfigParser()
-config.read('settings.ini')
 
-if 'Blender' in config and 'ExecutablePath' in config['Blender']:
-    blender_executable_path = config['Blender']['ExecutablePath']
+@app.route('/')
+def index():
+    return render_template('index.html', scenes=scene_list)
 
-def open_settings():
-    settings.run()
-    
-def browse_scene_file(scene_entry):
-    file_path = filedialog.askopenfilename(filetypes=[("Blender Files", "*.blend")])
-    scene_entry.delete(0, tk.END)
-    scene_entry.insert(0, file_path)
 
-def browse_output_folder(output_entry):
-    folder_path = filedialog.askdirectory()
-    output_entry.delete(0, tk.END)
-    output_entry.insert(0, folder_path)
-
+@app.route('/add', methods=['POST'])
 def add_scene():
-    scene_file = scene_entry.get()
-    output_folder = output_entry.get()
-    scene_prefix = prefix_entry.get()
-    
+    uploaded_file = request.files.get('scene_file')
+    if uploaded_file and uploaded_file.filename:
+        filename = secure_filename(uploaded_file.filename)
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        uploaded_file.save(save_path)
+        scene_file = save_path
+    else:
+        scene_file = request.form.get('scene_file', '')
+    output_folder = request.form.get('output_folder', '')
+    prefix = request.form.get('prefix', '')
     try:
-        frame_start = int(frame_start_entry.get())
-        frame_end = int(frame_end_entry.get())
+        frame_start = int(request.form.get('frame_start', 0))
+        frame_end = int(request.form.get('frame_end', 0))
     except ValueError:
-        messagebox.showerror("InputError", "Frame start and end must be integers.")
-        return
+        return redirect(url_for('index'))
+    if not scene_file:
+        return redirect(url_for('index'))
+    scene_list.append(Scene(scene_file, output_folder, frame_start, frame_end, prefix))
+    return redirect(url_for('index'))
 
-    if frame_start > frame_end:
-        messagebox.showerror("InputError", "Frame start cannot be greater than frame end.")
-        return
 
-    if not scene_file.strip():
-        messagebox.showerror("SceneFileInvalidError", "Please select a scene file to add.")
-        return
-    
-    if not scene_file.endswith('.blend'):
-        messagebox.showerror("SceneFileInvalidError", "The selected file is not a .blend file. Please select a valid Blender scene file.")
-        return
-    
-    scene = Scene(scene_file, output_folder, frame_start, frame_end, scene_prefix)
-    scene_list.append(scene)
-
-    # Update the listbox to display the added scene
-    scene_info = f"File: {scene_file}, Prefix: {scene_prefix} Output: {output_folder or 'Blend File Directory'}, Frames: {frame_start}-{frame_end}"
-    scene_listbox.insert(tk.END, scene_info)
-
-    # Update the width of the listbox based on the longest line of text
-    max_line_width = max(len(line) for line in scene_listbox.get(0, tk.END))
-    scene_listbox.config(width=max_line_width)
-
-    # Clear the input fields
-    scene_entry.delete(0, tk.END)
-    output_entry.delete(0, tk.END)
-    frame_start_entry.delete(0, tk.END)
-    frame_end_entry.delete(0, tk.END)
-
+@app.route('/clear', methods=['POST'])
 def clear_scenes():
     scene_list.clear()
-    scene_listbox.delete(0, tk.END)
+    return redirect(url_for('index'))
 
-# Create the GUI window
-window = tk.Tk()
-window.title("Blender Render")
-#blender_entry = tk.Entry(window, width=50)
-#blender_entry.pack()
 
-# Add menu bar
-menubar = tk.Menu(window)
-file = tk.Menu(menubar, tearoff=0)
-file.add_command(label="Settings", command=open_settings)
-menubar.add_cascade(label="File", menu=file)
-window.config(menu=menubar)
+@app.route('/render', methods=['POST'])
+def render():
+    global render_thread
+    if render_thread is None or not render_thread.is_alive():
+        render_thread = threading.Thread(target=run_rendering)
+        render_thread.start()
+    return redirect(url_for('logs'))
 
-# Scene file selection
-scene_label = tk.Label(window, text="Scene File:")
-scene_label.pack()
 
-scene_entry = tk.Entry(window, width=50)
-scene_entry.pack()
+@app.route('/logs')
+def logs():
+    if request.args.get('plain'):
+        return "\n".join(log_lines)
+    return render_template('logs.html', log_text="\n".join(log_lines))
 
-browse_scene_button = tk.Button(window, text="Browse", command=lambda: browse_scene_file(scene_entry))
-browse_scene_button.pack()
 
-# Output folder selection
-output_label = tk.Label(window, text="Output Folder:")
-output_label.pack()
+@app.route('/settings', methods=['GET', 'POST'])
+def settings_view():
+    global blender_executable_path
+    if request.method == 'POST':
+        uploaded_exec = request.files.get('blender_path')
+        if uploaded_exec and uploaded_exec.filename:
+            filename = secure_filename(uploaded_exec.filename)
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            uploaded_exec.save(save_path)
+            blender_executable_path = save_path
+        else:
+            blender_executable_path = request.form.get('blender_path', '')
+        settings.save_blender_executable(blender_executable_path)
+        return redirect(url_for('index'))
+    return render_template('settings.html', blender_path=blender_executable_path)
 
-output_entry = tk.Entry(window, width=50)
-output_entry.pack()
 
-browse_output_button = tk.Button(window, text="Browse", command=lambda: browse_output_folder(output_entry))
-browse_output_button.pack()
+if __name__ == '__main__':
+    app.run()
 
-# Prefix input
-prefix_label = tk.Label(window, text="Filename Prefix:")
-prefix_label.pack()
-
-prefix_entry = tk.Entry(window, width=50)
-prefix_entry.pack()
-
-# Frame range inputs
-frame_start_label = tk.Label(window, text="Frame Start:")
-frame_start_label.pack()
-
-frame_start_entry = tk.Entry(window, width=50)
-frame_start_entry.pack()
-
-frame_end_label = tk.Label(window, text="Frame End:")
-frame_end_label.pack()
-
-frame_end_entry = tk.Entry(window, width=50)
-frame_end_entry.pack()
-
-# Add scene button
-add_scene_button = tk.Button(window, text="Add Scene", command=add_scene)
-add_scene_button.pack()
-
-# Scene list
-scene_list = []
-scene_listbox = tk.Listbox(window, width=1)  # Start with a minimum width
-scene_listbox.pack(fill=tk.BOTH)
-
-# Render button
-render_button = tk.Button(window, text="Render", command=render)
-render_button.pack()
-
-# Clear scenes button
-clear_scenes_button = tk.Button(window, text="Clear Scenes", command=clear_scenes)
-clear_scenes_button.pack()
-
-# Shutdown checkbox
-shutdown_var = tk.IntVar()
-shutdown_checkbox = tk.Checkbutton(window, text="Shutdown after rendering", variable=shutdown_var)
-shutdown_checkbox.pack()
-
-# Status label
-status_label = tk.Label(window, text="")
-status_label.pack()
-
-console_output = tk.Text(window, height=10, width=80)
-console_output.pack()
-
-# Start the GUI event loop
-window.mainloop()
