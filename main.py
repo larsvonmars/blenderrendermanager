@@ -4,7 +4,6 @@ import threading
 import json
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
-
 import settings
 
 app = Flask(__name__)
@@ -43,7 +42,8 @@ stop_event = threading.Event()
 class Scene:
     def __init__(self, file, output_folder, frame_start, frame_end, prefix,
                  resolution_x=None, resolution_y=None, engine=None, samples=None,
-                 file_format=None, color_depth=None, fps=None):
+                 file_format=None, color_depth=None, fps=None,
+                 blend_version=None, blend_scenes=None):
         self.file = file
         self.output_folder = output_folder
         self.frame_start = frame_start
@@ -56,6 +56,8 @@ class Scene:
         self.file_format = file_format
         self.color_depth = color_depth
         self.fps = fps
+        self.blend_version = blend_version
+        self.blend_scenes = blend_scenes or []
 
 
 def log(message: str):
@@ -161,13 +163,40 @@ def add_scene():
     engine = request.form.get('engine') or None
     file_format = request.form.get('file_format') or None
     color_depth = request.form.get('color_depth') or None
+
+    # Extract .blend file info using Blender subprocess
+    blend_version = None
+    blend_scenes = []
+    if scene_file and os.path.exists(scene_file) and blender_executable_path and os.path.exists(blender_executable_path):
+        try:
+            script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'extract_blend_info.py')
+            cmd = [blender_executable_path, '--background', '--python', script_path, '--', scene_file]
+            result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
+            import json as _json
+            output = result.stdout.strip().split('\n')
+            # Find the last line that looks like JSON
+            for line in reversed(output):
+                try:
+                    info = _json.loads(line)
+                    if 'version' in info:
+                        blend_version = info['version']
+                    if 'scenes' in info:
+                        blend_scenes = info['scenes']
+                    break
+                except Exception:
+                    continue
+        except Exception as e:
+            blend_version = 'Unknown'
+            blend_scenes = []
+
     if not scene_file:
         return redirect(url_for('index'))
     scene_list.append(Scene(
         scene_file, output_folder, frame_start, frame_end, prefix,
         resolution_x=resolution_x, resolution_y=resolution_y,
         engine=engine, samples=samples, file_format=file_format,
-        color_depth=color_depth, fps=fps))
+        color_depth=color_depth, fps=fps,
+        blend_version=blend_version, blend_scenes=blend_scenes))
     save_scene_list()
     return redirect(url_for('index'))
 
@@ -207,13 +236,33 @@ def cancel_render():
 def status():
     total = len(scene_list)
     current_file = ''
+    current_scene = None
     if is_rendering and 0 <= current_scene_index < total:
-        current_file = scene_list[current_scene_index].file
+        s = scene_list[current_scene_index]
+        current_file = s.file
+        # Return all info for the current scene
+        current_scene = {
+            'file': s.file,
+            'output_folder': s.output_folder,
+            'frame_start': s.frame_start,
+            'frame_end': s.frame_end,
+            'prefix': s.prefix,
+            'resolution_x': s.resolution_x,
+            'resolution_y': s.resolution_y,
+            'engine': s.engine,
+            'samples': s.samples,
+            'file_format': s.file_format,
+            'color_depth': s.color_depth,
+            'fps': s.fps,
+            'blend_version': s.blend_version,
+            'blend_scenes': s.blend_scenes,
+        }
     return jsonify({
         'rendering': is_rendering,
         'current_index': current_scene_index + 1 if is_rendering else 0,
         'total': total,
         'current_file': current_file,
+        'current_scene': current_scene,
     })
 
 

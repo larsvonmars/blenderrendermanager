@@ -7,85 +7,176 @@
 <body>
     <div class="container">
         <h1>Blender Render Manager</h1>
-        <div id="status" class="status">Idle</div>
-        <form action="/add" method="post" enctype="multipart/form-data">
-            <label>Scene File:</label><input type="file" name="scene_file" accept=".blend"><br>
-
-            <label>Output Folder:</label><input type="text" name="output_folder" size="60"><br>
-            <label>Filename Prefix:</label><input type="text" name="prefix" size="20"><br>
-            <label>Frame Start:</label><input type="number" name="frame_start"><br>
-            <label>Frame End:</label><input type="number" name="frame_end"><br>
-            <label>Resolution X:</label><input type="number" name="resolution_x"><br>
-            <label>Resolution Y:</label><input type="number" name="resolution_y"><br>
-            <label>Engine:</label>
-            <select name="engine">
-                <option value="">Default</option>
-                <option value="CYCLES">Cycles</option>
-                <option value="BLENDER_EEVEE">Eevee</option>
-            </select><br>
-            <label>Samples:</label><input type="number" name="samples"><br>
-            <label>File Format:</label>
-            <select name="file_format">
-                <option value="">Default</option>
-                <option value="PNG">PNG</option>
-                <option value="JPEG">JPEG</option>
-                <option value="TIFF">TIFF</option>
-                <option value="OPEN_EXR">OPEN_EXR</option>
-            </select><br>
-            <label>Color Depth:</label>
-            <select name="color_depth">
-                <option value="">Default</option>
-                <option value="8">8</option>
-                <option value="16">16</option>
-            </select><br>
-            <label>FPS:</label><input type="number" name="fps"><br>
-            <input type="submit" value="Add Scene">
-        </form>
-        <h2>Scenes</h2>
-        <ul class="scene-list">
-            {% for s in scenes %}
-            <li>
-                {{ s.file }} ({{ s.frame_start }}-{{ s.frame_end }})
-                <span class="details">
-                    {% if s.resolution_x and s.resolution_y %}{{ s.resolution_x }}x{{ s.resolution_y }} {% endif %}
-                    {% if s.engine %}{{ s.engine }} {% endif %}
-                    {% if s.file_format %}{{ s.file_format }}{% endif %}
-                </span>
-                <form action="/remove/{{ loop.index0 }}" method="post" style="display:inline;">
-                    <button type="submit">Remove</button>
-                </form>
-            </li>
-            {% endfor %}
-        </ul>
-        <form action="/render" method="post">
-            <button type="submit">Render Scenes</button>
-        </form>
-        <form action="/cancel" method="post" id="cancel-form" style="display:none;">
-            <button type="submit" id="cancel-btn">Cancel Rendering</button>
-        </form>
-        <form action="/clear" method="post">
-            <button type="submit">Clear Scenes</button>
-        </form>
+        <div class="section card render-process-card">
+            <h2 style="margin-top:0; margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size:1.3em;">⚡</span> Render Process
+            </h2>
+            <div id="render-process-info" class="render-process-grid">
+                <div class="rp-item"><span class="rp-label">Status</span><span id="render-status" class="rp-value">Idle</span></div>
+                <div class="rp-item"><span class="rp-label">Current Scene</span><span id="render-scene" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">Frame Range</span><span id="render-frames" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">Output Folder</span><span id="render-output" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">Prefix</span><span id="render-prefix" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">Engine</span><span id="render-engine" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">Resolution</span><span id="render-res" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">File Format</span><span id="render-format" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">Samples</span><span id="render-samples" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">FPS</span><span id="render-fps" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">Blender Version</span><span id="render-blendver" class="rp-value">—</span></div>
+                <div class="rp-item"><span class="rp-label">Blend Scenes</span><span id="render-blendscenes" class="rp-value">—</span></div>
+            </div>
+        </div>
+        <div class="section">
+            <form action="/add" method="post" enctype="multipart/form-data" class="card">
+                <h2>Add Scene</h2>
+                <fieldset class="fieldset-basic">
+                    <legend>Basic Info</legend>
+                    <div class="form-row"><label>Scene File:</label><input type="file" name="scene_file" accept=".blend"></div>
+                    <div class="form-row"><label>Output Folder:</label><input type="text" name="output_folder" size="60"></div>
+                    <div class="form-row"><label>Filename Prefix:</label><input type="text" name="prefix" size="20"></div>
+                    <div class="form-row"><label>Frame Start:</label><input type="number" name="frame_start"></div>
+                    <div class="form-row"><label>Frame End:</label><input type="number" name="frame_end"></div>
+                </fieldset>
+                <fieldset class="fieldset-advanced">
+                    <legend>Render Settings</legend>
+                    <div class="render-settings-grid">
+                        <div class="form-row"><label>Resolution X:</label><input type="number" name="resolution_x"></div>
+                        <div class="form-row"><label>Resolution Y:</label><input type="number" name="resolution_y"></div>
+                        <div class="form-row"><label>Engine:</label>
+                            <select name="engine">
+                                <option value="">Default</option>
+                                <option value="CYCLES">Cycles</option>
+                                <option value="BLENDER_EEVEE">Eevee</option>
+                            </select>
+                        </div>
+                        <div class="form-row"><label>Samples:</label><input type="number" name="samples"></div>
+                        <div class="form-row"><label>File Format:</label>
+                            <select name="file_format">
+                                <option value="">Default</option>
+                                <option value="PNG">PNG</option>
+                                <option value="JPEG">JPEG</option>
+                                <option value="TIFF">TIFF</option>
+                                <option value="OPEN_EXR">OPEN_EXR</option>
+                            </select>
+                        </div>
+                        <div class="form-row"><label>Color Depth:</label>
+                            <select name="color_depth">
+                                <option value="">Default</option>
+                                <option value="8">8</option>
+                                <option value="16">16</option>
+                            </select>
+                        </div>
+                        <div class="form-row"><label>FPS:</label><input type="number" name="fps"></div>
+                    </div>
+                </fieldset>
+                <div class="form-row" style="margin-top:18px;"><input type="submit" value="Add Scene"></div>
+            </form>
+        </div>
+        <div class="section">
+            <h2>Render Queue</h2>
+            <div class="queue-list">
+                {% for s in scenes %}
+                <div class="queue-card card">
+                    <div class="queue-header">
+                        <span class="queue-index">{{ loop.index }}</span>
+                        <span class="queue-filename">{{ s.file.split('/')[-1].split('\\')[-1] }}</span>
+                        <span class="queue-frame-range">Frames: {{ s.frame_start }}-{{ s.frame_end }}</span>
+                        <form action="/remove/{{ loop.index0 }}" method="post" style="margin-left:auto;">
+                            <button type="submit" title="Remove">&times;</button>
+                        </form>
+                    </div>
+                    <div class="queue-blend-info">
+                        <span title="Output Folder"><b>Output:</b> {{ s.output_folder or '—' }}</span>
+                        <span title="Prefix"><b>Prefix:</b> {{ s.prefix or '—' }}</span>
+                        {% if s.blend_version %}
+                            <span title="Blender Version"><b>Blender:</b> {{ s.blend_version }}</span>
+                        {% endif %}
+                        {% if s.blend_scenes and s.blend_scenes|length > 0 %}
+                            <span title="Scenes"><b>Scenes:</b> {{ s.blend_scenes|join(', ') }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="queue-meta">
+                        {% if s.resolution_x and s.resolution_y %}<span title="Resolution">🖼️ {{ s.resolution_x }}x{{ s.resolution_y }}</span>{% endif %}
+                        {% if s.engine %}<span title="Engine">⚙️ {{ s.engine }}</span>{% endif %}
+                        {% if s.samples %}<span title="Samples">🔬 {{ s.samples }}</span>{% endif %}
+                        {% if s.file_format %}<span title="File Format">📄 {{ s.file_format }}</span>{% endif %}
+                        {% if s.color_depth %}<span title="Color Depth">🌈 {{ s.color_depth }}-bit</span>{% endif %}
+                        {% if s.fps %}<span title="FPS">🎞️ {{ s.fps }}</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="queue-actions">
+                <form action="/render" method="post" style="display:inline-block;"><button type="submit">Render Queue</button></form>
+                <form action="/cancel" method="post" id="cancel-form" style="display:inline-block; display:none;"><button type="submit" id="cancel-btn">Cancel Rendering</button></form>
+                <form action="/clear" method="post" style="display:inline-block;"><button type="submit">Clear Queue</button></form>
+            </div>
+        </div>
+        <div class="section">
+            <h2>Rendered Output</h2>
+            <div id="output-files" class="output-gallery"></div>
+        </div>
         <div class="links"><a href="/settings">Settings</a> | <a href="/logs">Logs</a></div>
     </div>
     <script>
-        function updateStatus() {
+        let wasRendering = false;
+        function notifyRenderComplete() {
+            if (window.Notification && Notification.permission === "granted") {
+                new Notification("Rendering complete!", { body: "All scenes have finished rendering." });
+            } else if (window.Notification && Notification.permission !== "denied") {
+                Notification.requestPermission().then(function (permission) {
+                    if (permission === "granted") {
+                        new Notification("Rendering complete!", { body: "All scenes have finished rendering." });
+                    }
+                });
+            }
+        }
+        function updateRenderProcess() {
             fetch('/status')
                 .then(r => r.json())
                 .then(data => {
-                    const status = document.getElementById('status');
+                    const status = document.getElementById('render-status');
+                    const scene = document.getElementById('render-scene');
+                    const frames = document.getElementById('render-frames');
+                    const output = document.getElementById('render-output');
+                    const prefix = document.getElementById('render-prefix');
+                    const engine = document.getElementById('render-engine');
+                    const res = document.getElementById('render-res');
+                    const format = document.getElementById('render-format');
+                    const samples = document.getElementById('render-samples');
+                    const fps = document.getElementById('render-fps');
+                    const blendver = document.getElementById('render-blendver');
+                    const blendscenes = document.getElementById('render-blendscenes');
                     const cancelForm = document.getElementById('cancel-form');
-                    if (data.rendering) {
-                        status.textContent = `Rendering scene ${data.current_index}/${data.total}: ${data.current_file}`;
+
+                    if (data.rendering && data.current_scene) {
+                        status.textContent = `Rendering scene ${data.current_index}/${data.total}`;
+                        scene.textContent = data.current_scene.file.split('/').pop().split('\\').pop();
+                        frames.textContent = `${data.current_scene.frame_start} - ${data.current_scene.frame_end}`;
+                        output.textContent = data.current_scene.output_folder || '—';
+                        prefix.textContent = data.current_scene.prefix || '—';
+                        engine.textContent = data.current_scene.engine || '—';
+                        res.textContent = (data.current_scene.resolution_x && data.current_scene.resolution_y) ? `${data.current_scene.resolution_x}x${data.current_scene.resolution_y}` : '—';
+                        format.textContent = data.current_scene.file_format || '—';
+                        samples.textContent = data.current_scene.samples || '—';
+                        fps.textContent = data.current_scene.fps || '—';
+                        blendver.textContent = data.current_scene.blend_version || '—';
+                        blendscenes.textContent = (data.current_scene.blend_scenes && data.current_scene.blend_scenes.length > 0) ? data.current_scene.blend_scenes.join(', ') : '—';
                         cancelForm.style.display = 'block';
+                        wasRendering = true;
                     } else {
+                        if (wasRendering) {
+                            notifyRenderComplete();
+                        }
+                        wasRendering = false;
                         status.textContent = 'Idle';
+                        scene.textContent = frames.textContent = output.textContent = prefix.textContent = engine.textContent = res.textContent = format.textContent = samples.textContent = fps.textContent = blendver.textContent = blendscenes.textContent = '—';
                         cancelForm.style.display = 'none';
                     }
                 });
         }
-        setInterval(updateStatus, 1000);
-        updateStatus();
+        setInterval(updateRenderProcess, 1000);
+        updateRenderProcess();
     </script>
 </body>
 </html>

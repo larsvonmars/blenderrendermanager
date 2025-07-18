@@ -4,6 +4,17 @@
     "output_folder": "",
     "frame_start": 1,
     "frame_end": 1,
-    "prefix": ""
+    "prefix": "",
+    "resolution_x": null,
+    "resolution_y": null,
+    "engine": null,
+    "samples": null,
+    "file_format": null,
+    "color_depth": null,
+    "fps": null,
+    "blend_version": "4.1.1",
+    "blend_scenes": [
+      "Scene"
+    ]
   }
 ]
